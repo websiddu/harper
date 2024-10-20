@@ -21,28 +21,49 @@ pub fn clean_mdx_content(mdx: &str) -> String {
     // Regex to match HTML tags and preserve attribute values.
     let tag_regex = Regex::new(r#"<(/?[\w\-]+)([^>]*)>"#).unwrap();
     let attr_regex = Regex::new(r#"\b[\w\-]+="([^"]*)""#).unwrap();
-    // Regex for Markdown image and link tags.
-    let image_tag_regex = Regex::new(r#"!?\[([^\]]+)\]\([^\)]+\)"#).unwrap();
+    // Regex for Markdown image tags.
+    let image_tag_regex = Regex::new(r#"\!\[([^\]]+)\]\([^\)]+\)"#).unwrap();
+    // Regex for Markdown links.
+    let link_tag_regex = Regex::new(r#"\[([^\]]+)\]\([^\)]+\)"#).unwrap();
+
     // Regex for URLs (simple matching).
     let url_regex = Regex::new(r#"(https?://[^\s]+)"#).unwrap();
     // Regex for email addresses.
     let email_regex = Regex::new(r#"[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}"#).unwrap();
     // Regex for code blocks enclosed in triple backticks.
-    let code_block_regex = Regex::new(r#"```[^`]*```"#).unwrap();
+    let code_block_regex = Regex::new(r#"```[a-zA-Z]*\n[\s\S]*?\n```"#).unwrap();
     // Regex for inline code snippets enclosed in backticks.
-    let inline_code_regex = Regex::new(r#"`[^`]+`"#).unwrap();
+    let inline_code_regex = Regex::new(r#"`([^`]+)`"#).unwrap();
+    // Regex for emojis (general Unicode range for emojis).
+    let emoji_regex = Regex::new(r#"[\p{Emoji}]"#).unwrap();
+    // Regex for sequences of dashes.
+    let dash_regex = Regex::new(r#"-{2,}"#).unwrap();
 
-    // Step 1: Replace Markdown image and link tags, preserving their text.
+    // Step 1: Replace Markdown image tags, preserving their alt text but placing a space before it.
     let cleaned = image_tag_regex.replace_all(mdx, |caps: &regex::Captures| {
         let alt_text = &caps[1];
-        format!("{}{}", alt_text, " ".repeat(caps[0].len() - alt_text.len()))
+        format!(
+            "  {}{}",
+            alt_text,
+            " ".repeat(caps[0].len() - alt_text.len() - 2)
+        )
     });
 
-    // Step 2: Replace code blocks with spaces.
+    // Step 2: Replace Markdown link tags, preserving their link text but placing a space before it.
+    let cleaned = link_tag_regex.replace_all(&cleaned, |caps: &regex::Captures| {
+        let link_text = &caps[1];
+        format!(
+            " {}{}",
+            link_text,
+            " ".repeat(caps[0].len() - link_text.len() - 1)
+        )
+    });
+
+    // Step 3: Replace code blocks with spaces.
     let cleaned =
         code_block_regex.replace_all(&cleaned, |caps: &regex::Captures| " ".repeat(caps[0].len()));
 
-    // Step 3: Clean up HTML tags while preserving attribute values.
+    // Step 4: Clean up HTML tags while preserving attribute values.
     let cleaned = tag_regex.replace_all(&cleaned, |caps: &regex::Captures| {
         let tag_name = &caps[1];
         let attributes = &caps[2];
@@ -65,17 +86,35 @@ pub fn clean_mdx_content(mdx: &str) -> String {
         result
     });
 
-    // Step 4: Replace URLs with spaces.
+    // Step 5: Replace URLs with spaces.
     let cleaned =
         url_regex.replace_all(&cleaned, |caps: &regex::Captures| " ".repeat(caps[0].len()));
 
-    // Step 5: Replace email addresses with spaces.
+    // Step 6: Replace email addresses with spaces.
     let cleaned =
         email_regex.replace_all(&cleaned, |caps: &regex::Captures| " ".repeat(caps[0].len()));
 
-    // Step 6: Replace inline code snippets with spaces.
+    // Step 7: Replace properly closed inline code snippets with spaces.
+    let cleaned = inline_code_regex.replace_all(&cleaned, |caps: &regex::Captures| {
+        let content = &caps[1];
+        // Replace only if the content is short (e.g., less than 50 characters) and does not span multiple lines.
+        if content.len() <= 50 && !content.contains('\n') {
+            " ".repeat(caps[0].len())
+        } else {
+            caps[0].to_string() // Leave it unchanged if it doesn't meet the criteria.
+        }
+    });
+
+    // Step 8: Replace emojis with spaces, accounting for their UTF-16 length.
+    let cleaned = emoji_regex.replace_all(&cleaned, |caps: &regex::Captures| {
+        // Calculate the number of UTF-16 code units.
+        let utf16_length = caps[0].encode_utf16().count();
+        " ".repeat(utf16_length)
+    });
+
+    // Step 9: Replace sequences of two or more dashes with spaces.
     let cleaned =
-        inline_code_regex.replace_all(&cleaned, |caps: &regex::Captures| " ".repeat(caps[0].len()));
+        dash_regex.replace_all(&cleaned, |caps: &regex::Captures| " ".repeat(caps[0].len()));
 
     cleaned.to_string()
 }
