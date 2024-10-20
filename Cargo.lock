@@ -663,19 +663,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "harper-wasm"
-version = "0.1.0"
-dependencies = [
- "console_error_panic_hook",
- "harper-core",
- "once_cell",
- "serde-wasm-bindgen",
- "tracing",
- "tracing-wasm",
- "wasm-bindgen",
-]
-
-[[package]]
 name = "hashbrown"
 version = "0.14.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -850,6 +837,20 @@ dependencies = [
  "serde_json",
  "serde_repr",
  "url",
+]
+
+[[package]]
+name = "mdx-lint"
+version = "0.2.0"
+dependencies = [
+ "console_error_panic_hook",
+ "harper-core",
+ "once_cell",
+ "regex",
+ "serde-wasm-bindgen",
+ "tracing",
+ "tracing-wasm",
+ "wasm-bindgen",
 ]
 
 [[package]]

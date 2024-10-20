@@ -1,11 +1,11 @@
 #![doc = include_str!("../README.md")]
 
-use std::sync::Mutex;
-
 use harper_core::linting::{LintGroup, LintGroupConfig, Linter};
-use harper_core::parsers::Markdown;
+use harper_core::parsers::PlainEnglish;
 use harper_core::{remove_overlaps, Document, FullDictionary, Lrc};
 use once_cell::sync::Lazy;
+use regex::Regex;
+use std::sync::Mutex;
 use wasm_bindgen::prelude::wasm_bindgen;
 use wasm_bindgen::JsValue;
 
@@ -15,6 +15,70 @@ static LINTER: Lazy<Mutex<LintGroup<Lrc<FullDictionary>>>> = Lazy::new(|| {
         FullDictionary::curated(),
     ))
 });
+
+#[wasm_bindgen]
+pub fn clean_mdx_content(mdx: &str) -> String {
+    // Regex to match HTML tags and preserve attribute values.
+    let tag_regex = Regex::new(r#"<(/?[\w\-]+)([^>]*)>"#).unwrap();
+    let attr_regex = Regex::new(r#"\b[\w\-]+="([^"]*)""#).unwrap();
+    // Regex for Markdown image and link tags.
+    let image_tag_regex = Regex::new(r#"!?\[([^\]]+)\]\([^\)]+\)"#).unwrap();
+    // Regex for URLs (simple matching).
+    let url_regex = Regex::new(r#"(https?://[^\s]+)"#).unwrap();
+    // Regex for email addresses.
+    let email_regex = Regex::new(r#"[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}"#).unwrap();
+    // Regex for code blocks enclosed in triple backticks.
+    let code_block_regex = Regex::new(r#"```[^`]*```"#).unwrap();
+    // Regex for inline code snippets enclosed in backticks.
+    let inline_code_regex = Regex::new(r#"`[^`]+`"#).unwrap();
+
+    // Step 1: Replace Markdown image and link tags, preserving their text.
+    let cleaned = image_tag_regex.replace_all(mdx, |caps: &regex::Captures| {
+        let alt_text = &caps[1];
+        format!("{}{}", alt_text, " ".repeat(caps[0].len() - alt_text.len()))
+    });
+
+    // Step 2: Replace code blocks with spaces.
+    let cleaned =
+        code_block_regex.replace_all(&cleaned, |caps: &regex::Captures| " ".repeat(caps[0].len()));
+
+    // Step 3: Clean up HTML tags while preserving attribute values.
+    let cleaned = tag_regex.replace_all(&cleaned, |caps: &regex::Captures| {
+        let tag_name = &caps[1];
+        let attributes = &caps[2];
+
+        // Replace the tag name with spaces.
+        let mut result = " ".repeat(tag_name.len() + 1);
+
+        // Preserve the attribute values while replacing attribute names with spaces.
+        let cleaned_attributes =
+            attr_regex.replace_all(attributes, |attr_caps: &regex::Captures| {
+                format!(
+                    "{}\"{}\"",
+                    " ".repeat(attr_caps[0].len() - attr_caps[1].len() - 2),
+                    &attr_caps[1]
+                )
+            });
+
+        result.push_str(&cleaned_attributes);
+        result.push_str(" ");
+        result
+    });
+
+    // Step 4: Replace URLs with spaces.
+    let cleaned =
+        url_regex.replace_all(&cleaned, |caps: &regex::Captures| " ".repeat(caps[0].len()));
+
+    // Step 5: Replace email addresses with spaces.
+    let cleaned =
+        email_regex.replace_all(&cleaned, |caps: &regex::Captures| " ".repeat(caps[0].len()));
+
+    // Step 6: Replace inline code snippets with spaces.
+    let cleaned =
+        inline_code_regex.replace_all(&cleaned, |caps: &regex::Captures| " ".repeat(caps[0].len()));
+
+    cleaned.to_string()
+}
 
 /// Setup the WebAssembly module's logging.
 ///
@@ -46,8 +110,11 @@ pub fn lint(text: String) -> Vec<Lint> {
     let source: Vec<_> = text.chars().collect();
     let source = Lrc::new(source);
 
-    let document =
-        Document::new_from_vec(source.clone(), &mut Markdown, &FullDictionary::curated());
+    let document = Document::new_from_vec(
+        source.clone(),
+        &mut PlainEnglish,
+        &FullDictionary::curated(),
+    );
 
     let mut lints = LINTER.lock().unwrap().lint(&document);
 
