@@ -31,7 +31,8 @@ pub fn clean_mdx_content(mdx: &str) -> String {
     // Regex for email addresses.
     let email_regex = Regex::new(r#"[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}"#).unwrap();
     // Regex for code blocks enclosed in triple backticks.
-    let code_block_regex = Regex::new(r#"```[a-zA-Z]*\n[\s\S]*?\n```"#).unwrap();
+    let code_block_regex =
+        Regex::new(r#"\s*```\s*[\s\S]*?\s*```\s*|\s*``````\s*[\s\S]*?\s*``````\s*"#).unwrap();
     // Regex for inline code snippets enclosed in backticks.
     let inline_code_regex = Regex::new(r#"`([^`]+)`"#).unwrap();
     // Regex for emojis (general Unicode range for emojis).
