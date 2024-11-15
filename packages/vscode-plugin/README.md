@@ -1,30 +1,30 @@
 # Harper for VS Code
 
-Currently, `harper-ls` needs to be in your `PATH` for this extension to work. [Read here to see how to install it](/harper-ls/README.md#installation).
+Harper is the grammar checker for developers. It checks for spelling and grammar errors in your Markdown files and code comments. You can find out more by checking it out on [GitHub](https://github.com/elijah-potter/harper) or by visiting the [website](https://writewithharper.com).
 
-## Manually Packaging and Installing
+## Installation
 
-### Requirements
+Installation should be relatively straightforward.
+It just depends on which editor and marketplace you're using.
 
-- [`yarn`](https://classic.yarnpkg.com/en), as the package manager
-- [`just`](https://just.systems), as the command runner
+If you use the official Microsoft Visual Studio Code release, go ahead and go to the marketplace and search for "Harper" and click "Install".
+You can also visit our [official page](https://marketplace.visualstudio.com/items?itemName=elijah-potter.harper&ssr=false#overview).
 
-### Steps
+If you use OpenVSX, for instance if you use VSCodium, you'll want to install from [here](https://open-vsx.org/extension/elijah-potter/harper).
 
-1. Clone or download the Harper repository:
+### Commands
 
-   ```console
-   git clone https://github.com/elijah-potter/harper && cd harper
-   ```
+| Command                         | Id                              | Description         |
+| ------------------------------- | ------------------------------- | ------------------- |
+| Harper: Restart Language Server | `harper.languageserver.restart` | Restart `harper-ls` |
 
-2. Package the extension:
+### Settings
 
-   ```console
-   just package-vscode
-   ```
+| Setting                        | Possible Values                                   | Default Value   | Description                                                       |
+| ------------------------------ | ------------------------------------------------- | --------------- | ----------------------------------------------------------------- |
+| `harper-ls.linters.*`          | `true`, `false`                                   | Varies          | Detect and provide suggestions in a variety of common situations. |
+| `harper-ls.diagnosticSeverity` | `"error"`, `"hint"`, `"information"`, `"warning"` | `"information"` | How severe do you want diagnostics to appear in the editor?       |
 
-3. Install the extension:
+## Developing and Contributing
 
-   ```console
-   code --install-extension packages/vscode-plugin/harper-0.0.1.vsix
-   ```
+See the [Development Guide](/packages/vscode-plugin/development-guide.md).

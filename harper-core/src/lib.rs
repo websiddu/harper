@@ -4,7 +4,7 @@
 mod char_ext;
 mod char_string;
 mod document;
-mod language_detection;
+pub mod language_detection;
 mod lexing;
 pub mod linting;
 mod mask;
@@ -60,4 +60,32 @@ pub fn remove_overlaps(lints: &mut Vec<Lint>) {
     }
 
     lints.remove_indices(remove_indices);
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::{
+        linting::{LintGroup, LintGroupConfig, Linter},
+        remove_overlaps, Document, FullDictionary,
+    };
+
+    #[test]
+    fn keeps_space_lint() {
+        let doc = Document::new_plain_english_curated("Ths  tet");
+
+        let lint_config = LintGroupConfig {
+            spell_check: Some(true),
+            spaces: Some(true),
+            ..LintGroupConfig::none()
+        };
+        let mut linter = LintGroup::new(lint_config, FullDictionary::curated());
+
+        let mut lints = linter.lint(&doc);
+
+        dbg!(&lints);
+        remove_overlaps(&mut lints);
+        dbg!(&lints);
+
+        assert_eq!(lints.len(), 3);
+    }
 }

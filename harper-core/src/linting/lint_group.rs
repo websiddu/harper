@@ -3,6 +3,7 @@ use serde::{Deserialize, Serialize};
 
 use super::an_a::AnA;
 use super::avoid_curses::AvoidCurses;
+use super::boring_words::BoringWords;
 use super::correct_number_suffix::CorrectNumberSuffix;
 use super::dot_initialisms::DotInitialisms;
 use super::ellipsis_length::EllipsisLength;
@@ -18,6 +19,7 @@ use super::spell_check::SpellCheck;
 use super::spelled_numbers::SpelledNumbers;
 use super::terminating_conjunctions::TerminatingConjunctions;
 use super::unclosed_quotes::UnclosedQuotes;
+use super::use_genitive::UseGenitive;
 use super::wrong_quotes::WrongQuotes;
 use super::{Lint, Linter};
 use crate::{Dictionary, Document};
@@ -36,6 +38,16 @@ macro_rules! create_lint_group_config {
             }
 
             impl LintGroupConfig {
+                /// Creates a config with all lints disabled.
+                pub fn none() -> Self{
+                    Self {
+                        $(
+                            [<$linter:snake>]: Some(false),
+                        )*
+                        spell_check: Some(false)
+                    }
+                }
+
                 /// Fills the [`None`] values in the configuration with the default values.
                 pub fn fill_default_values(&mut self){
                     $(
@@ -115,7 +127,9 @@ create_lint_group_config!(
     AvoidCurses => true,
     TerminatingConjunctions => true,
     EllipsisLength => true,
-    DotInitialisms => true
+    DotInitialisms => true,
+    BoringWords => false,
+    UseGenitive => true
 );
 
 impl<T: Dictionary + Default> Default for LintGroup<T> {

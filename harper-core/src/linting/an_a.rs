@@ -12,7 +12,7 @@ impl Linter for AnA {
     fn lint(&mut self, document: &Document) -> Vec<Lint> {
         let mut lints = Vec::new();
 
-        for chunk in document.chunks() {
+        for chunk in document.iter_chunks() {
             for (first_idx, second_idx) in chunk.iter_word_indices().tuple_windows() {
                 // [`TokenKind::Unlintable`] might be semantic words.
                 if chunk[first_idx..second_idx].iter_unlintables().count() > 0 {
@@ -204,5 +204,45 @@ mod tests {
     #[test]
     fn issue_196() {
         assert_lint_count("This is formatted as an `ext4` file system.", AnA, 0);
+    }
+
+    #[test]
+    fn allows_lowercase_vowels() {
+        assert_lint_count("not an error", AnA, 0);
+    }
+
+    #[test]
+    fn allows_lowercase_consonants() {
+        assert_lint_count("not a crash", AnA, 0);
+    }
+
+    #[test]
+    fn disallows_lowercase_vowels() {
+        assert_lint_count("not a error", AnA, 1);
+    }
+
+    #[test]
+    fn disallows_lowercase_consonants() {
+        assert_lint_count("not an crash", AnA, 1);
+    }
+
+    #[test]
+    fn allows_uppercase_vowels() {
+        assert_lint_count("not an Error", AnA, 0);
+    }
+
+    #[test]
+    fn allows_uppercase_consonants() {
+        assert_lint_count("not a Crash", AnA, 0);
+    }
+
+    #[test]
+    fn disallows_uppercase_vowels() {
+        assert_lint_count("not a Error", AnA, 1);
+    }
+
+    #[test]
+    fn disallows_uppercase_consonants() {
+        assert_lint_count("not an Crash", AnA, 1);
     }
 }

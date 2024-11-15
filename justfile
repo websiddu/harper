@@ -41,17 +41,59 @@ build-obsidian:
 
   zip harper-obsidian-plugin.zip manifest.json main.js
 
-# Build and package the Visual Studio Code extension.
-package-vscode:
+test-vscode:
   #! /bin/bash
   set -eo pipefail
 
-  path="{{justfile_directory()}}/packages/vscode-plugin"
-  cp LICENSE "${path}/LICENSE"
-  cd "$path"
+  ext_dir="{{justfile_directory()}}/packages/vscode-plugin"
+  bin_dir="${ext_dir}/bin"
+
+  if ! [[ -d "$bin_dir" ]]; then
+    mkdir "$bin_dir"
+  fi
+
+  cargo build --release
+  cp "{{justfile_directory()}}/target/release/harper-ls"* "$bin_dir"
+
+  cd "$ext_dir"
 
   yarn install -f
-  yarn package-extension
+  # For environments without displays like CI servers or containers
+  if [[ "$(uname)" == "Linux" ]] && [[ -z "$DISPLAY" ]]; then
+    xvfb-run --auto-servernum yarn test
+  else
+    yarn test
+  fi
+
+# Build and package the Visual Studio Code extension.
+# If `target` is passed, it is assumed that `harper-ls` has been compiled beforehand and is in `packages/vscode-plugin/bin`. This is used in CI.
+package-vscode target="":
+  #! /bin/bash
+  set -eo pipefail
+
+  ext_dir="{{justfile_directory()}}/packages/vscode-plugin"
+  bin_dir="${ext_dir}/bin"
+
+  cp LICENSE "$ext_dir"
+
+  if [[ -z "{{target}}" ]]; then
+    cargo build --release
+
+    if ! [[ -d "$bin_dir" ]]; then
+      mkdir "$bin_dir"
+    fi
+
+    cp "{{justfile_directory()}}/target/release/harper-ls"* "$bin_dir"
+  fi
+
+  cd "$ext_dir"
+
+  yarn install -f
+  if [[ -n "{{target}}" ]]; then
+    yarn package --target {{target}}
+  else
+    yarn package
+  fi
 
 check-rust:
   #! /bin/bash
@@ -83,7 +125,7 @@ setup:
 
   cargo build
   just build-obsidian
-  just package-vscode
+  just test-vscode
   just build-web
 
 # Perform full format and type checking, build all projects and run all tests. Run this before pushing your code.
@@ -100,7 +142,7 @@ precommit:
   cargo bench
 
   just build-obsidian
-  just package-vscode 
+  just test-vscode
   just build-web
 
 # Install `harper-cli` and `harper-ls` to your machine via `cargo`

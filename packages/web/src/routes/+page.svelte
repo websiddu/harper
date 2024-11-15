@@ -1,11 +1,13 @@
 <script>
 	import Graph from '$lib/Graph.svelte';
+	import CodeLogo from '$lib/CodeLogo.svelte';
 	import Editor from '$lib/Editor.svelte';
 	import Section from '$lib/Section.svelte';
 	import GutterCenter from '$lib/GutterCenter.svelte';
 	import Logo from '$lib/Logo.svelte';
 	import GitHubLogo from '$lib/GitHubLogo.svelte';
 	import { DarkMode } from 'flowbite-svelte';
+	import ObsidianLogo from '$lib/ObsidianLogo.svelte';
 
 	let width = window.innerWidth;
 
@@ -26,13 +28,20 @@
 	<h1 class="text-5xl font-bold text-center dark:text-white">Hi. I’m Harper.</h1>
 	<h2 class="text-3xl text-center dark:text-white">The Grammar Checker for Developers</h2>
 
-	<div class="flex flex-row justify-evenly mt-5">
+	<div
+		class="md:flex md:flex-row grid grid-cols-2 items-center justify-evenly mt-5 transition-all place-items-center"
+	>
 		<a
 			href="https://github.com/elijah-potter/harper"
-			class="flex flex-row items-center [&>*]:m-2 dark:text-white"
+			class="flex flex-row items-center [&>*]:m-2 dark:text-white hover:scale-105"
 			><GitHubLogo width="40px" height="40px" />GitHub</a
 		>
-		<a href="https://elijahpotter.dev" class="flex flex-row items-center [&>*]:m-2 dark:text-white"
+		<a href="/obsidian" class="flex flex-row items-center [&>*]:m-2 dark:text-white hover:scale-105"
+			><ObsidianLogo width="40px" height="40px" />Obsidian Plugin</a
+		>
+		<a
+			href="https://elijahpotter.dev"
+			class="flex flex-row items-center [&>*]:m-2 dark:text-white hover:scale-105"
 			><img
 				width="40"
 				height="40"
@@ -40,6 +49,11 @@
 				src="/icons/profile.svg"
 				alt="Author"
 			/>Author</a
+		>
+		<a
+			href="https://marketplace.visualstudio.com/items?itemName=elijah-potter.harper"
+			class="flex flex-row items-center [&>*]:m-2 dark:text-white hover:scale-105"
+			><CodeLogo width="40px" height="40px" />Code Plugin</a
 		>
 	</div>
 
@@ -52,11 +66,9 @@
 		</span>
 	</Section>
 
-	{#if width > 1080}
-		<div class="w-full h-[600px] overflow-hidden">
-			<Editor />
-		</div>
-	{/if}
+	<div class="w-full h-[800px] overflow-hidden">
+		<Editor />
+	</div>
 
 	<Section>
 		<span slot="title">Private</span>
@@ -77,7 +89,12 @@
 				class="underline"
 				href="https://github.com/elijah-potter/harper/tree/master/harper-ls">language server</a
 			>, and through WebAssembly, so you can get fantastic grammar checking anywhere you work.
-			<br /><br /> That said, we take extra care to make sure the Neovim,
+			<br /><br /> That said, we take extra care to make sure the
+			<a
+				class="underline"
+				href="https://marketplace.visualstudio.com/items?itemName=elijah-potter.harper"
+				>Visual Studio Code</a
+			>, Neovim,
 			<a class="underline" href="https://github.com/Stef16Robbe/harper_zed">Zed</a>
 			and
 			<a class="underline" href="/obsidian">Obsidian</a> integration is amazing.

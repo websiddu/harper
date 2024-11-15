@@ -32,6 +32,11 @@ macro_rules! create_test {
 
                  dbg!(&lints);
                  assert_eq!(lints.len(), $correct_expected);
+
+                 // Make sure that all generated tokens span real characters
+                 for token in document.tokens(){
+                     assert!(token.span.try_get_content(document.get_source()).is_some());
+                 }
             }
         }
     };
@@ -46,3 +51,10 @@ create_test!(merged_lines.ts, 1);
 create_test!(javadoc_clean_simple.java, 0);
 create_test!(javadoc_complex.java, 4);
 create_test!(issue_132.rs, 1);
+
+// These are to make sure nothing crashes.
+create_test!(empty.js, 0);
+create_test!(issue_229.js, 0);
+create_test!(issue_229.c, 0);
+create_test!(issue_229.cs, 0);
+create_test!(eof.rs, 0);

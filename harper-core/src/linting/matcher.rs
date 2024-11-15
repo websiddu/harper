@@ -102,6 +102,8 @@ impl Matcher {
         // This match list needs to be automatically expanded instead of explicitly
         // defined like it is now.
         let mut triggers = pt! {
+            "spacial","attention" => "special attention",
+            "wellbeing" => "well-being",
             "hashtable" => "hash table",
             "hashmap" => "hash map",
             "CCP" => "Chinese Communist Party",
@@ -266,13 +268,13 @@ impl Matcher {
             "wee", "kend" => "weekend",
             "with", "in" => "within",
             "with", "out" => "without",
-            "TreeSitter" => "Tree-sitter",
-            "Treesitter" => "Tree-sitter",
             "Tree", "sitter" => "Tree-sitter",
             "all", "of", "the" => "all the",
             "an", "other" => "another",
             "not", "longer" => "no longer",
-            "to", "towards" => "towards"
+            "to", "towards" => "towards",
+            "though", "process" => "thought process",
+            "the", "this" => "that this"
         };
 
         // TODO: Improve the description for this lint specifically.

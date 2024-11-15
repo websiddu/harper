@@ -1,5 +1,7 @@
 **/**
-!build
+!build/extension.js
 !package.json
 !LICENSE
 !CHANGELOG.md
+!bin
+!icon.png
