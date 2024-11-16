@@ -1,13 +1,12 @@
 #![doc = include_str!("../README.md")]
 
-use std::convert::Into;
-use std::sync::Arc;
-
 use harper_core::language_detection::is_doc_likely_english;
-use harper_core::linting::{LintGroup, LintGroupConfig, Linter as _};
-use harper_core::parsers::{IsolateEnglish, Markdown, PlainEnglish};
-use harper_core::{remove_overlaps, Document, FstDictionary, FullDictionary, Lrc};
-use serde::{Deserialize, Serialize};
+use harper_core::linting::{LintGroup, LintGroupConfig, Linter};
+use harper_core::parsers::{IsolateEnglish, PlainEnglish};
+use harper_core::{remove_overlaps, Document, FullDictionary, Lrc};
+use once_cell::sync::Lazy;
+use regex::Regex;
+use std::sync::Mutex;
 use wasm_bindgen::prelude::wasm_bindgen;
 use wasm_bindgen::JsValue;
 
@@ -34,6 +33,8 @@ pub fn clean_mdx_content(mdx: &str) -> String {
     let emoji_regex = Regex::new(r#"[\p{Emoji}]"#).unwrap();
     // Regex for sequences of dashes.
     let dash_regex = Regex::new(r#"-{2,}"#).unwrap();
+    // Regex to match non-English characters.
+    let non_english_words_regex = Regex::new(r#"[^\x00-\x7F]+"#).unwrap();
 
     // Step 1: Replace Markdown image tags, preserving their alt text but placing a space before it.
     let cleaned = image_tag_regex.replace_all(mdx, |caps: &regex::Captures| {
@@ -41,7 +42,7 @@ pub fn clean_mdx_content(mdx: &str) -> String {
         format!(
             "  {}{}",
             alt_text,
-            " ".repeat(caps[0].len() - alt_text.len() - 2)
+            " ".repeat(caps[0].chars().count() - alt_text.chars().count() - 2)
         )
     });
 
@@ -51,13 +52,14 @@ pub fn clean_mdx_content(mdx: &str) -> String {
         format!(
             " {}{}",
             link_text,
-            " ".repeat(caps[0].len() - link_text.len() - 1)
+            " ".repeat(caps[0].chars().count() - link_text.chars().count() - 1)
         )
     });
 
     // Step 3: Replace code blocks with spaces.
-    let cleaned =
-        code_block_regex.replace_all(&cleaned, |caps: &regex::Captures| " ".repeat(caps[0].len()));
+    let cleaned = code_block_regex.replace_all(&cleaned, |caps: &regex::Captures| {
+        " ".repeat(caps[0].chars().count())
+    });
 
     // Step 4: Clean up HTML tags while preserving attribute values.
     let cleaned = tag_regex.replace_all(&cleaned, |caps: &regex::Captures| {
@@ -65,14 +67,14 @@ pub fn clean_mdx_content(mdx: &str) -> String {
         let attributes = &caps[2];
 
         // Replace the tag name with spaces.
-        let mut result = " ".repeat(tag_name.len() + 1);
+        let mut result = " ".repeat(tag_name.chars().count() + 1);
 
         // Preserve the attribute values while replacing attribute names with spaces.
         let cleaned_attributes =
             attr_regex.replace_all(attributes, |attr_caps: &regex::Captures| {
                 format!(
                     "{}\"{}\"",
-                    " ".repeat(attr_caps[0].len() - attr_caps[1].len() - 2),
+                    " ".repeat(attr_caps[0].chars().count() - attr_caps[1].chars().count() - 2),
                     &attr_caps[1]
                 )
             });
@@ -83,19 +85,21 @@ pub fn clean_mdx_content(mdx: &str) -> String {
     });
 
     // Step 5: Replace URLs with spaces.
-    let cleaned =
-        url_regex.replace_all(&cleaned, |caps: &regex::Captures| " ".repeat(caps[0].len()));
+    let cleaned = url_regex.replace_all(&cleaned, |caps: &regex::Captures| {
+        " ".repeat(caps[0].chars().count())
+    });
 
     // Step 6: Replace email addresses with spaces.
-    let cleaned =
-        email_regex.replace_all(&cleaned, |caps: &regex::Captures| " ".repeat(caps[0].len()));
+    let cleaned = email_regex.replace_all(&cleaned, |caps: &regex::Captures| {
+        " ".repeat(caps[0].chars().count())
+    });
 
     // Step 7: Replace properly closed inline code snippets with spaces.
     let cleaned = inline_code_regex.replace_all(&cleaned, |caps: &regex::Captures| {
         let content = &caps[1];
         // Replace only if the content is short (e.g., less than 50 characters) and does not span multiple lines.
-        if content.len() <= 50 && !content.contains('\n') {
-            " ".repeat(caps[0].len())
+        if content.chars().count() <= 50 && !content.contains('\n') {
+            " ".repeat(caps[0].chars().count())
         } else {
             caps[0].to_string() // Leave it unchanged if it doesn't meet the criteria.
         }
@@ -109,8 +113,14 @@ pub fn clean_mdx_content(mdx: &str) -> String {
     });
 
     // Step 9: Replace sequences of two or more dashes with spaces.
-    let cleaned =
-        dash_regex.replace_all(&cleaned, |caps: &regex::Captures| " ".repeat(caps[0].len()));
+    let cleaned = dash_regex.replace_all(&cleaned, |caps: &regex::Captures| {
+        " ".repeat(caps[0].chars().count())
+    });
+
+    // Step 10: Replace non-English words, preserving grapheme cluster length.
+    let cleaned = non_english_words_regex.replace_all(&cleaned, |caps: &regex::Captures| {
+        " ".repeat(caps[0].chars().count())
+    });
 
     cleaned.to_string()
 }
