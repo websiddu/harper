@@ -1001,7 +1001,7 @@ dependencies = [
 
 [[package]]
 name = "mdx-lint"
-version = "0.7.0"
+version = "0.8.1"
 dependencies = [
  "console_error_panic_hook",
  "harper-core",
