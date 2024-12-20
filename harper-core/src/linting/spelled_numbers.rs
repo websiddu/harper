@@ -80,7 +80,9 @@ fn spell_out_number(num: u64) -> Option<String> {
 
 #[cfg(test)]
 mod tests {
-    use super::spell_out_number;
+    use crate::linting::tests::assert_suggestion_result;
+
+    use super::{spell_out_number, SpelledNumbers};
 
     #[test]
     fn produces_fifty_three() {
@@ -90,5 +92,15 @@ mod tests {
     #[test]
     fn produces_eighty_two() {
         assert_eq!(spell_out_number(82), Some("eighty two".to_string()))
+    }
+
+    #[test]
+    fn corrects_ten() {
+        assert_suggestion_result("There are 10 pigs.", SpelledNumbers, "There are ten pigs.");
+    }
+
+    #[test]
+    fn does_not_correct_eleven() {
+        assert_suggestion_result("There are 11 pigs.", SpelledNumbers, "There are 11 pigs.");
     }
 }
