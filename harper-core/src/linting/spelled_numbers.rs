@@ -14,7 +14,7 @@ impl Linter for SpelledNumbers {
             let (number, _suffix) = number_tok.kind.number().unwrap();
             let number: f64 = number.into();
 
-            if (number - number.floor()).abs() < f64::EPSILON && number <= 100. {
+            if (number - number.floor()).abs() < f64::EPSILON && number <= 10. {
                 lints.push(Lint {
                     span: number_tok.span,
                     lint_kind: LintKind::Readability,
