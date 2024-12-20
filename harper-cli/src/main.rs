@@ -77,7 +77,7 @@ fn main() -> anyhow::Result<()> {
             let report = report_builder.finish();
             report.print((&filename, Source::from(source)))?;
 
-            std::process::exit(1);
+            Ok(())
         }
         Args::Parse { file } => {
             let (doc, _) = load_file(&file)?;
@@ -120,7 +120,7 @@ fn main() -> anyhow::Result<()> {
             let report = report_builder.finish();
             report.print((&filename, Source::from(source)))?;
 
-            std::process::exit(1);
+            Ok(())
         }
         Args::Words => {
             let dict = FstDictionary::curated();
