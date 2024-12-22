@@ -1,7 +1,7 @@
 use crate::linting::{LintKind, Linter, Suggestion};
 use crate::{Document, Lint, TokenStringExt};
 
-/// Linter that checks to make sure small integers (< one hundred) are spelled
+/// Linter that checks to make sure small integers (< 10) are spelled
 /// out.
 #[derive(Default, Clone, Copy)]
 pub struct SpelledNumbers;
@@ -14,14 +14,14 @@ impl Linter for SpelledNumbers {
             let (number, _suffix) = number_tok.kind.number().unwrap();
             let number: f64 = number.into();
 
-            if (number - number.floor()).abs() < f64::EPSILON && number <= 10. {
+            if (number - number.floor()).abs() < f64::EPSILON && number < 10. {
                 lints.push(Lint {
                     span: number_tok.span,
                     lint_kind: LintKind::Readability,
                     suggestions: vec![Suggestion::ReplaceWith(
                         spell_out_number(number as u64).unwrap().chars().collect(),
                     )],
-                    message: "Try to spell out numbers less than a hundred.".to_string(),
+                    message: "Try to spell out numbers less than ten.".to_string(),
                     priority: 63,
                 })
             }
@@ -33,12 +33,11 @@ impl Linter for SpelledNumbers {
 
 /// Converts a number to it's spelled-out variant.
 ///
-/// For example: 100 -> one-hundred.
+/// For example: 100 -> one hundred.
 ///
-/// Could easily be extended to support numbers greater than 110, but we don't
-/// need that yet.
+/// Works for numbers up to 999, but can be expanded to include more powers of 10.
 fn spell_out_number(num: u64) -> Option<String> {
-    if num > 110 {
+    if num > 999 {
         return None;
     }
 
@@ -56,6 +55,13 @@ fn spell_out_number(num: u64) -> Option<String> {
         10 => "ten".to_string(),
         11 => "eleven".to_string(),
         12 => "twelve".to_string(),
+        13 => "thirteen".to_string(),
+        14 => "fourteen".to_string(),
+        15 => "fifteen".to_string(),
+        16 => "sixteen".to_string(),
+        17 => "seventeen".to_string(),
+        18 => "eighteen".to_string(),
+        19 => "nineteen".to_string(),
         20 => "twenty".to_string(),
         30 => "thirty".to_string(),
         40 => "forty".to_string(),
@@ -64,14 +70,18 @@ fn spell_out_number(num: u64) -> Option<String> {
         70 => "seventy".to_string(),
         80 => "eighty".to_string(),
         90 => "ninety".to_string(),
-        100 => "one hundred".to_string(),
+        hundred if hundred % 100 == 0 => {
+            format!("{} hundred", spell_out_number(hundred / 100).unwrap())
+        }
         _ => {
-            let parent = (num / 10) * 10;
-            let child = num % 10;
+            let n = 10u64.pow((num as f32).log10() as u32);
+            let parent = (num / n) * n; // truncate
+            let child = num % n;
 
             format!(
-                "{} {}",
+                "{}{}{}",
                 spell_out_number(parent).unwrap(),
+                if num <= 99 { '-' } else { ' ' },
                 spell_out_number(child).unwrap()
             )
         }
@@ -85,22 +95,30 @@ mod tests {
     use super::{spell_out_number, SpelledNumbers};
 
     #[test]
-    fn produces_fifty_three() {
-        assert_eq!(spell_out_number(53), Some("fifty three".to_string()))
+    fn produces_zero() {
+        assert_eq!(spell_out_number(0), Some("zero".to_string()))
     }
 
     #[test]
     fn produces_eighty_two() {
-        assert_eq!(spell_out_number(82), Some("eighty two".to_string()))
+        assert_eq!(spell_out_number(82), Some("eighty-two".to_string()))
     }
 
     #[test]
-    fn corrects_ten() {
-        assert_suggestion_result("There are 10 pigs.", SpelledNumbers, "There are ten pigs.");
+    fn produces_nine_hundred_ninety_nine() {
+        assert_eq!(
+            spell_out_number(999),
+            Some("nine hundred ninety-nine".to_string())
+        )
     }
 
     #[test]
-    fn does_not_correct_eleven() {
-        assert_suggestion_result("There are 11 pigs.", SpelledNumbers, "There are 11 pigs.");
+    fn corrects_nine() {
+        assert_suggestion_result("There are 9 pigs.", SpelledNumbers, "There are nine pigs.");
+    }
+
+    #[test]
+    fn does_not_correct_ten() {
+        assert_suggestion_result("There are 10 pigs.", SpelledNumbers, "There are 10 pigs.");
     }
 }
