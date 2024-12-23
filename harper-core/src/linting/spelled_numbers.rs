@@ -121,4 +121,12 @@ mod tests {
     fn does_not_correct_ten() {
         assert_suggestion_result("There are 10 pigs.", SpelledNumbers, "There are 10 pigs.");
     }
+
+    /// Check that the algorithm won't stack overflow or return `None` for any numbers within the specified range.
+    #[test]
+    fn services_range() {
+        for i in 0..1000 {
+            spell_out_number(i).unwrap();
+        }
+    }
 }
