@@ -1,5 +1,5 @@
 use crate::linting::{LintKind, PatternLinter, Suggestion};
-use crate::patterns::{EitherPattern, Pattern, SequencePattern, WordPatternGroup};
+use crate::patterns::{EitherPattern, Invert, Pattern, SequencePattern, WordPatternGroup};
 use crate::{Lint, Lrc, Token};
 
 // Looks for places where the genitive case _isn't_ being used, and should be.
@@ -9,25 +9,25 @@ pub struct UseGenitive {
 
 impl UseGenitive {
     fn new() -> Self {
-        // Define the environment in which the genitive case should be used in.
+        // Define the environment in the genitive case __should__ be used in.
         let environment = Lrc::new(SequencePattern::default().then_whitespace().then(Box::new(
             EitherPattern::new(vec![
-                                Box::new(
-                                    SequencePattern::default()
-                                        .then_one_or_more_adjectives()
-                                        .then_whitespace()
-                                        .then_noun(),
-                                ),
-                                Box::new(SequencePattern::default().then_noun()),
-                            ]),
+                    Box::new(
+                        SequencePattern::default()
+                            .then_one_or_more_adjectives()
+                            .then_whitespace()
+                            .then_noun(),
+                    ),
+                    Box::new(SequencePattern::default().then_noun()),
+                ]),
         )));
 
         let trigger_words = ["there", "they're"];
 
-        let mut pattern = WordPatternGroup::default();
+        let mut primary_pattern = WordPatternGroup::default();
 
         for word in trigger_words {
-            pattern.add(
+            primary_pattern.add(
                 word,
                 Box::new(
                     SequencePattern::default()
@@ -37,8 +37,18 @@ impl UseGenitive {
             )
         }
 
+        // Add a prelude to remove false-positives.
+        let full_pattern = SequencePattern::default()
+            .then(Box::new(Invert::new(Box::new(EitherPattern::new(vec![
+                Box::new(SequencePattern::default().then_exact_word_or_lowercase("Is")),
+                Box::new(SequencePattern::default().then_exact_word_or_lowercase("Were")),
+                Box::new(SequencePattern::default().then_adjective()),
+            ])))))
+            .then_whitespace()
+            .then(Box::new(primary_pattern));
+
         Self {
-            pattern: Box::new(pattern),
+            pattern: Box::new(full_pattern),
         }
     }
 }
@@ -50,7 +60,7 @@ impl PatternLinter for UseGenitive {
 
     fn match_to_lint(&self, matched_tokens: &[Token], _source: &[char]) -> Lint {
         Lint {
-            span: matched_tokens[0].span,
+            span: matched_tokens[2].span,
             lint_kind: LintKind::Miscellaneous,
             suggestions: vec![Suggestion::ReplaceWith(vec!['t', 'h', 'e', 'i', 'r'])],
             message: "Use the genitive case.".to_string(),
@@ -119,5 +129,46 @@ mod tests {
             UseGenitive::default(),
             "The students received their test results today.",
         )
+    }
+
+    #[test]
+    fn allows_grantlemons_issue_267_cat() {
+        assert_lint_count("Were there cats at her house?", UseGenitive::default(), 0);
+    }
+
+    #[test]
+    fn allows_grantlemons_issue_267_apple() {
+        assert_lint_count(
+            "Were there any apples at the store?",
+            UseGenitive::default(),
+            0,
+        );
+    }
+
+    #[test]
+    fn allows_grantlemons_issue_267_fruit() {
+        assert_lint_count(
+            "Were there many kinds of fruit at the store?",
+            UseGenitive::default(),
+            0,
+        );
+    }
+
+    #[test]
+    fn allows_grantlemons_issue_267_people() {
+        assert_lint_count(
+            "Were there more than, or less than six people at the party?",
+            UseGenitive::default(),
+            0,
+        );
+    }
+
+    #[test]
+    fn allows_faster_at_running() {
+        assert_lint_count(
+            "Melissa was faster at running than her friend.",
+            UseGenitive::default(),
+            0,
+        );
     }
 }
