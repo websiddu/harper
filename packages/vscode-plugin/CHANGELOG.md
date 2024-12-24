@@ -4,6 +4,7 @@
 
 - Linting Python, Shellscript/Bash, and Git Commit files now work properly.
 - Add support for Nix and Plaintext files.
+- Add the `harper-ls.path` setting to optionally use a different `harper-ls` executable.
 
 ## 0.12.0
 
