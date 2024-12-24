@@ -15,6 +15,9 @@ impl Default for BoringWords {
 
         pattern.add_word("very");
         pattern.add_word("interesting");
+        pattern.add_word("several");
+        pattern.add_word("most");
+        pattern.add_word("many");
 
         Self {
             pattern: Box::new(pattern),
