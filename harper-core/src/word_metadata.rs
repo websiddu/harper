@@ -10,13 +10,19 @@ pub struct WordMetadata {
     pub adverb: Option<AdverbData>,
     pub conjunction: Option<ConjunctionData>,
     pub swear: Option<bool>,
+    /// Whether the word is an [article](https://dictionary.cambridge.org/dictionary/english/article).
+    #[serde(default = "default_false")]
+    pub article: bool,
+    /// Whether the word is a [preposition](https://www.merriam-webster.com/dictionary/preposition).
+    #[serde(default = "default_false")]
+    pub preposition: bool,
     /// Whether the word is considered especially common.
-    #[serde(default = "default_common")]
+    #[serde(default = "default_false")]
     pub common: bool,
 }
 
 /// Needed for `serde`
-fn default_common() -> bool {
+fn default_false() -> bool {
     false
 }
 
@@ -89,6 +95,8 @@ impl WordMetadata {
             adverb: merge!(self.adverb, other.adverb),
             conjunction: merge!(self.conjunction, other.conjunction),
             swear: self.swear.or(other.swear),
+            article: self.article || other.article,
+            preposition: self.preposition || other.preposition,
             common: self.common || other.common,
         }
     }

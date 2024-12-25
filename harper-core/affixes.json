@@ -565,6 +565,24 @@
       "gifts_metadata": {
         "common": true
       }
+    },
+    "+": {
+      "suffix": true,
+      "cross_product": true,
+      "replacements": [],
+      "adds_metadata": {},
+      "gifts_metadata": {
+        "preposition": true
+      }
+    },
+    "-": {
+      "suffix": true,
+      "cross_product": true,
+      "replacements": [],
+      "adds_metadata": {},
+      "gifts_metadata": {
+        "article": true
+      }
     }
   }
 }
