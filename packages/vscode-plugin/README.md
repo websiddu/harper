@@ -20,10 +20,11 @@ If you use OpenVSX, for instance if you use VSCodium, you'll want to install fro
 
 ### Settings
 
-| Setting                        | Possible Values                                   | Default Value   | Description                                                       |
-| ------------------------------ | ------------------------------------------------- | --------------- | ----------------------------------------------------------------- |
-| `harper-ls.linters.*`          | `true`, `false`                                   | Varies          | Detect and provide suggestions in a variety of common situations. |
-| `harper-ls.diagnosticSeverity` | `"error"`, `"hint"`, `"information"`, `"warning"` | `"information"` | How severe do you want diagnostics to appear in the editor?       |
+| Setting                        | Type                                              | Default Value   | Description                                                                                                                                                 |
+| ------------------------------ | ------------------------------------------------- | --------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `harper-ls.path`               | `string`                                          | `""`            | Optional path to a `harper-ls` executable to use. Primarily useful if the bundled binary doesn't work in your system like in immutable Linux distributions. |
+| `harper-ls.linters.*`          | `boolean`                                         | Varies          | Detect and provide suggestions in a variety of common situations.                                                                                           |
+| `harper-ls.diagnosticSeverity` | `"error"`, `"hint"`, `"information"`, `"warning"` | `"information"` | How severe do you want diagnostics to appear in the editor?                                                                                                 |
 
 ## Developing and Contributing
 

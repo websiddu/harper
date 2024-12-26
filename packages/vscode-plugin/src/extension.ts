@@ -17,11 +17,7 @@ const serverOptions: Executable = { command: '', transport: TransportKind.stdio 
 const clientOptions: LanguageClientOptions = {};
 
 export async function activate(context: ExtensionContext): Promise<void> {
-	serverOptions.command = Uri.joinPath(
-		context.extensionUri,
-		'bin',
-		`harper-ls${process.platform === 'win32' ? '.exe' : ''}`
-	).fsPath;
+	serverOptions.command = getExecutablePath(context);
 
 	let manifest: ExtensionManifest;
 	try {
@@ -43,6 +39,12 @@ export async function activate(context: ExtensionContext): Promise<void> {
 	const configs = Object.keys(manifest.contributes.configuration.properties);
 	context.subscriptions.push(
 		workspace.onDidChangeConfiguration(async (event) => {
+			if (event.affectsConfiguration('harper-ls.path')) {
+				serverOptions.command = getExecutablePath(context);
+				await startLanguageServer();
+				return;
+			}
+
 			if (configs.find((c) => event.affectsConfiguration(c))) {
 				await client?.sendNotification('workspace/didChangeConfiguration', {
 					settings: { 'harper-ls': workspace.getConfiguration('harper-ls') }
@@ -56,6 +58,20 @@ export async function activate(context: ExtensionContext): Promise<void> {
 	);
 
 	await startLanguageServer();
+}
+
+function getExecutablePath(context: ExtensionContext): string {
+	const path = workspace.getConfiguration('harper-ls').get<string>('path', '');
+
+	if (path !== '') {
+		return path;
+	}
+
+	return Uri.joinPath(
+		context.extensionUri,
+		'bin',
+		`harper-ls${process.platform === 'win32' ? '.exe' : ''}`
+	).fsPath;
 }
 
 async function startLanguageServer(): Promise<void> {

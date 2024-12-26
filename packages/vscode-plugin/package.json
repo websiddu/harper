@@ -66,6 +66,11 @@
 			"type": "object",
 			"title": "Harper",
 			"properties": {
+				"harper-ls.path": {
+					"scope": "resource",
+					"type": "string",
+					"description": "Optional path to a harper-ls executable to use."
+				},
 				"harper-ls.linters.spell_check": {
 					"scope": "resource",
 					"type": "boolean",
