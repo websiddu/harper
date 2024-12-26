@@ -128,7 +128,7 @@ impl Matcher {
             "hr" => "hour",
             "w/o" => "without",
             "w/" => "with",
-            "wordlist" => "word list" ,
+            "wordlist" => "word list",
             "the","challenged" => "that challenged",
             "stdin" => "standard input",
             "stdout" => "standard output",

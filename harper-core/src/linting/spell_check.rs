@@ -62,8 +62,8 @@ impl<T: Dictionary> Linter for SpellCheck<T> {
 
             let mut possibilities = self.cached_suggest_correct_spelling(word_chars);
 
-            if possibilities.len() > 3 {
-                possibilities.resize_with(3, || panic!());
+            if possibilities.len() > 5 {
+                possibilities.resize_with(5, || panic!());
             }
 
             // If the misspelled word is capitalized, capitalize the results too.
@@ -84,7 +84,7 @@ impl<T: Dictionary> Linter for SpellCheck<T> {
                 lint_kind: LintKind::Spelling,
                 suggestions: suggestions.collect(),
                 message: format!(
-                    "Did you mean to spell “{}” this way?",
+                    "\"{}\": Unknown word",
                     document.get_span_content_str(word.span)
                 ),
                 priority: 63,

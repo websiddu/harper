@@ -5,11 +5,12 @@ use std::sync::Arc;
 
 use harper_core::language_detection::is_doc_likely_english;
 use harper_core::linting::{LintGroup, LintGroupConfig, Linter as _};
-use harper_core::parsers::{IsolateEnglish, Markdown, PlainEnglish};
+use harper_core::parsers::{IsolateEnglish, PlainEnglish};
 use harper_core::{remove_overlaps, Document, FstDictionary, FullDictionary, Lrc};
 use serde::{Deserialize, Serialize};
 use wasm_bindgen::prelude::wasm_bindgen;
 use wasm_bindgen::JsValue;
+use regex::Regex;
 
 /// Setup the WebAssembly module's logging.
 ///
@@ -41,6 +42,7 @@ macro_rules! make_serialize_fns_for {
 make_serialize_fns_for!(Suggestion);
 make_serialize_fns_for!(Lint);
 make_serialize_fns_for!(Span);
+
 
 #[wasm_bindgen]
 pub struct Linter {
@@ -101,13 +103,127 @@ impl Linter {
         Ok(())
     }
 
+    pub fn clean_mdx_content(&mut self, mdx: &str) -> String {
+        // Regex to match HTML tags and preserve attribute values.
+        let tag_regex = Regex::new(r#"<(/?[\w\-]+)([^>]*)>"#).unwrap();
+        let attr_regex = Regex::new(r#"\b[\w\-]+="([^"]*)""#).unwrap();
+        // Regex for Markdown image tags.
+        let image_tag_regex = Regex::new(r#"\!\[([^\]]+)\]\([^\)]+\)"#).unwrap();
+        // Regex for Markdown links.
+        let link_tag_regex = Regex::new(r#"\[([^\]]+)\]\([^\)]+\)"#).unwrap();
+    
+        // Regex for URLs (simple matching).
+        let url_regex = Regex::new(r#"(https?://[^\s]+)"#).unwrap();
+        // Regex for email addresses.
+        let email_regex = Regex::new(r#"[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}"#).unwrap();
+        // Regex for code blocks enclosed in triple backticks.
+        let code_block_regex =
+            Regex::new(r#"\s*```\s*[\s\S]*?\s*```\s*|\s*``````\s*[\s\S]*?\s*``````\s*"#).unwrap();
+        // Regex for inline code snippets enclosed in backticks.
+        let inline_code_regex = Regex::new(r#"`([^`]+)`"#).unwrap();
+        // Regex for emojis (general Unicode range for emojis).
+        let emoji_regex = Regex::new(r#"[\p{Emoji}]"#).unwrap();
+        // Regex for sequences of dashes.
+        let dash_regex = Regex::new(r#"-{2,}"#).unwrap();
+        // Regex to match non-English characters.
+        let non_english_words_regex = Regex::new(r#"[^\x00-\x7F]+"#).unwrap();
+    
+        // Step 1: Replace Markdown image tags, preserving their alt text but placing a space before it.
+        let cleaned = image_tag_regex.replace_all(mdx, |caps: &regex::Captures| {
+            let alt_text = &caps[1];
+            format!(
+                "  {}{}",
+                alt_text,
+                " ".repeat(caps[0].chars().count() - alt_text.chars().count() - 2)
+            )
+        });
+    
+        // Step 2: Replace Markdown link tags, preserving their link text but placing a space before it.
+        let cleaned = link_tag_regex.replace_all(&cleaned, |caps: &regex::Captures| {
+            let link_text = &caps[1];
+            format!(
+                " {}{}",
+                link_text,
+                " ".repeat(caps[0].chars().count() - link_text.chars().count() - 1)
+            )
+        });
+    
+        // Step 3: Replace code blocks with spaces.
+        let cleaned = code_block_regex.replace_all(&cleaned, |caps: &regex::Captures| {
+            " ".repeat(caps[0].chars().count())
+        });
+    
+        // Step 4: Clean up HTML tags while preserving attribute values.
+        let cleaned = tag_regex.replace_all(&cleaned, |caps: &regex::Captures| {
+            let tag_name = &caps[1];
+            let attributes = &caps[2];
+    
+            // Replace the tag name with spaces.
+            let mut result = " ".repeat(tag_name.chars().count() + 1);
+    
+            // Preserve the attribute values while replacing attribute names with spaces.
+            let cleaned_attributes =
+                attr_regex.replace_all(attributes, |attr_caps: &regex::Captures| {
+                    format!(
+                        "{}\"{}\"",
+                        " ".repeat(attr_caps[0].chars().count() - attr_caps[1].chars().count() - 2),
+                        &attr_caps[1]
+                    )
+                });
+    
+            result.push_str(&cleaned_attributes);
+            result.push_str(" ");
+            result
+        });
+    
+        // Step 5: Replace URLs with spaces.
+        let cleaned = url_regex.replace_all(&cleaned, |caps: &regex::Captures| {
+            " ".repeat(caps[0].chars().count())
+        });
+    
+        // Step 6: Replace email addresses with spaces.
+        let cleaned = email_regex.replace_all(&cleaned, |caps: &regex::Captures| {
+            " ".repeat(caps[0].chars().count())
+        });
+    
+        // Step 7: Replace properly closed inline code snippets with spaces.
+        let cleaned = inline_code_regex.replace_all(&cleaned, |caps: &regex::Captures| {
+            let content = &caps[1];
+            // Replace only if the content is short (e.g., less than 50 characters) and does not span multiple lines.
+            if content.chars().count() <= 50 && !content.contains('\n') {
+                " ".repeat(caps[0].chars().count())
+            } else {
+                caps[0].to_string() // Leave it unchanged if it doesn't meet the criteria.
+            }
+        });
+    
+        // Step 8: Replace emojis with spaces, accounting for their UTF-16 length.
+        let cleaned = emoji_regex.replace_all(&cleaned, |caps: &regex::Captures| {
+            // Calculate the number of UTF-16 code units.
+            let utf16_length = caps[0].encode_utf16().count();
+            " ".repeat(utf16_length)
+        });
+    
+        // Step 9: Replace sequences of two or more dashes with spaces.
+        let cleaned = dash_regex.replace_all(&cleaned, |caps: &regex::Captures| {
+            " ".repeat(caps[0].chars().count())
+        });
+    
+        // Step 10: Replace non-English words, preserving grapheme cluster length.
+        let cleaned = non_english_words_regex.replace_all(&cleaned, |caps: &regex::Captures| {
+            " ".repeat(caps[0].chars().count())
+        });
+    
+        cleaned.to_string()
+    }
+    
     /// Perform the configured linting on the provided text.
     pub fn lint(&mut self, text: String) -> Vec<Lint> {
         let source: Vec<_> = text.chars().collect();
         let source = Lrc::new(source);
 
         let document =
-            Document::new_from_vec(source.clone(), &mut Markdown, &FullDictionary::curated());
+            Document::new_from_vec(source.clone(), &mut PlainEnglish, &FullDictionary::curated());
 
         let mut lints = self.lint_group.lint(&document);
 
